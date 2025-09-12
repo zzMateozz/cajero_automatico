@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1078270406715",
+    "project_id": "cajero-automatico-fd89b",
+    "storage_bucket": "cajero-automatico-fd89b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1078270406715:android:a50412f187fdfb4c446c1e",
+        "android_client_info": {
+          "package_name": "com.example.cajero_automatico"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTJG8ZrHF85Le20P3Onwub0mtmLaC5nSw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
