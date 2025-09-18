@@ -276,8 +276,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             children: [
               Expanded(
                 child: CustomTextField(
-                  label: 'Nombre',
-                  hintText: 'Tu nombre',
+                  label: 'Nombres',
+                  hintText: 'Nombres',
                   controller: _firstNameController,
                   validator: (value){
                     String error = ValidationService.getNameError(value ?? '');
@@ -289,8 +289,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(width: 16),
               Expanded(
                 child: CustomTextField(
-                  label: 'Apellido',
-                  hintText: 'Tu apellido',
+                  label: 'Apellidos',
+                  hintText: 'Apellidos',
                   controller: _lastNameController,
                   validator: (value){
                     String error = ValidationService.getNameError(value ?? '');
@@ -357,13 +357,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: CustomTextField(
-                  key: ValueKey('document_$_selectedDocumentType'), // Clave única para recrear el widget
+                  key: ValueKey('document_${_selectedDocumentType}_${_getDocumentMaxLength()}'),
                   label: '',
                   hintText: _getDocumentHint(),
                   controller: _documentController,
                   isNumeric: _isDocumentNumeric(),
                   maxLength: _getDocumentMaxLength(),
-                  documentType: _selectedDocumentType,
+                  documentType: _selectedDocumentType, // Asegúrate de pasar este parámetro
                   validator: (value) {
                     String error = ValidationService.getDocumentError(value ?? '', _selectedDocumentType);
                     return error.isEmpty ? null : error;
@@ -372,6 +372,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
             ],
+          ),
+
+          // También agrega esta información visual mejorada
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _getDocumentTypeColor().withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: _getDocumentTypeColor().withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline, 
+                  color: _getDocumentTypeColor(), 
+                  size: 20
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _getDocumentInfo(),
+                    style: TextStyle(
+                      fontSize: 12, 
+                      color: _getDocumentTypeColor().withOpacity(0.8),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
 
           const SizedBox(height: 32),
@@ -435,36 +469,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               return error.isEmpty ? null : error;
             },
             prefixIcon: const Icon(Icons.lock_outline),
-          ),
-
-          const SizedBox(height: 32),
-
-          // Términos y condiciones
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Checkbox(
-                value: _acceptTerms,
-                onChanged: (value) {
-                  setState(() => _acceptTerms = value!);
-                },
-                activeColor: const Color(0xFF4CAF50),
-              ),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() => _acceptTerms = !_acceptTerms);
-                  },
-                  child: Text(
-                    'Acepto los términos y condiciones del servicio de cajero automático y autorizo el procesamiento de mis datos personales.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[700],
-                    ),
-                  ),
-                ),
-              ),
-            ],
           ),
 
           const SizedBox(height: 32),
@@ -706,18 +710,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-    int _getDocumentMaxLength() {
-    switch (_selectedDocumentType) {
-      case 'CC': // Cédula
-      case 'TI': // Tarjeta de Identidad
-        return 10;
-      case 'CE': // Cédula de Extranjería
-      case 'PP': // Pasaporte
-        return 12;
-      default:
-        return 12;
-    }
+
+  Color _getDocumentTypeColor() {
+  switch (_selectedDocumentType) {
+    case 'CC':
+      return Colors.blue;
+    case 'TI':
+      return Colors.green;
+    case 'CE':
+      return Colors.orange;
+    case 'PP':
+      return Colors.purple;
+    default:
+      return Colors.grey;
   }
+}
+String _getDocumentInfo() {
+  switch (_selectedDocumentType) {
+    case 'CC':
+      return 'Cédula de Ciudadanía: Solo números, máximo ${_getDocumentMaxLength()} dígitos';
+    case 'TI':
+      return 'Tarjeta de Identidad: Solo números, máximo ${_getDocumentMaxLength()} dígitos';
+    case 'CE':
+      return 'Cédula de Extranjería: Alfanumérico, máximo ${_getDocumentMaxLength()} caracteres';
+    case 'PP':
+      return 'Pasaporte: Alfanumérico, máximo ${_getDocumentMaxLength()} caracteres';
+    default:
+      return 'Ingresa tu número de documento';
+  }
+}
+
+int _getDocumentMaxLength() {
+  switch (_selectedDocumentType) {
+    case 'CC':
+    case 'TI':
+      return 10;
+    case 'CE':
+    case 'PP':
+      return 12;
+    default:
+      return 12;
+  }
+}
+
   String _getDocumentHint() {
   switch (_selectedDocumentType) {
     case 'CC':

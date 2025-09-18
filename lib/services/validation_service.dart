@@ -1,7 +1,6 @@
 import 'package:cajero_automatico/utils/constants.dart';
 
 class ValidationService {
-  // ========== VALIDACIONES DE FORMATO ==========
   
   // Validaciones para NEQUI (Tipo 1)
   static bool isValidNequiPhone(String phone) {
@@ -98,8 +97,6 @@ class ValidationService {
     return number.replaceAll(RegExp(r'[^0-9]'), '');
   }
 
-  // ========== VALIDACIONES DE REGLAS DE NEGOCIO ==========
-
   // Validar si el PIN es predecible o inseguro
   static bool isPinPredictable(String pin) {
     if (!isValidPin(pin)) return true;
@@ -136,8 +133,6 @@ class ValidationService {
     
     return ascending || descending;
   }
-
-  // ========== MENSAJES DE ERROR ==========
 
   static String getPhoneError(String phone) {
     if (phone.isEmpty) return 'El número de teléfono es requerido';
@@ -188,26 +183,29 @@ class ValidationService {
   static String getDocumentError(String document, String documentType) {
     if (document.isEmpty) return 'El número de documento es requerido';
     
+    // Limpiar el documento de espacios y caracteres especiales no permitidos
+    String cleanedDocument = document.replaceAll(RegExp(r'[^A-Za-z0-9]'), '');
+    
     switch (documentType) {
       case 'CC':
-        if (document.length < 8) return 'La cédula debe tener al menos 8 dígitos';
-        if (document.length > 10) return 'La cédula no puede tener más de 10 dígitos';
-        if (!RegExp(r'^[0-9]+$').hasMatch(document)) return 'Solo se permiten números';
+        if (cleanedDocument.length < 8) return 'La cédula debe tener al menos 8 dígitos';
+        if (cleanedDocument.length > 10) return 'La cédula no puede tener más de 10 dígitos';
+        if (!RegExp(r'^[0-9]+$').hasMatch(cleanedDocument)) return 'Solo se permiten números';
         break;
       case 'TI':
-        if (document.length < 8) return 'La tarjeta de identidad debe tener al menos 8 dígitos';
-        if (document.length > 10) return 'La tarjeta de identidad no puede tener más de 10 dígitos';
-        if (!RegExp(r'^[0-9]+$').hasMatch(document)) return 'Solo se permiten números';
+        if (cleanedDocument.length < 8) return 'La tarjeta de identidad debe tener al menos 8 dígitos';
+        if (cleanedDocument.length > 10) return 'La tarjeta de identidad no puede tener más de 10 dígitos';
+        if (!RegExp(r'^[0-9]+$').hasMatch(cleanedDocument)) return 'Solo se permiten números';
         break;
       case 'CE':
-        if (document.length < 6) return 'La cédula de extranjería debe tener al menos 6 caracteres';
-        if (document.length > 12) return 'La cédula de extranjería no puede tener más de 12 caracteres';
-        if (!RegExp(r'^[a-zA-Z0-9]+$').hasMatch(document)) return 'Solo se permiten letras y números';
+        if (cleanedDocument.length < 6) return 'La cédula de extranjería debe tener al menos 6 caracteres';
+        if (cleanedDocument.length > 12) return 'La cédula de extranjería no puede tener más de 12 caracteres';
+        if (!RegExp(r'^[A-Za-z0-9]+$').hasMatch(cleanedDocument)) return 'Solo se permiten letras y números';
         break;
       case 'PP':
-        if (document.length < 6) return 'El pasaporte debe tener al menos 6 caracteres';
-        if (document.length > 12) return 'El pasaporte no puede tener más de 12 caracteres';
-        if (!RegExp(r'^[a-zA-Z0-9]+$').hasMatch(document)) return 'Solo se permiten letras y números';
+        if (cleanedDocument.length < 6) return 'El pasaporte debe tener al menos 6 caracteres';
+        if (cleanedDocument.length > 12) return 'El pasaporte no puede tener más de 12 caracteres';
+        if (!RegExp(r'^[A-Za-z0-9]+$').hasMatch(cleanedDocument)) return 'Solo se permiten letras y números';
         break;
     }
     
@@ -222,8 +220,6 @@ class ValidationService {
     }
     return '';
   }
-
-  // ========== VALIDADORES INTEGRADOS CON MENSAJES ==========
 
   // Validador completo para cualquier tipo de cuenta
   static String validateAccountIdentifier(AccountType accountType, String identifier) {

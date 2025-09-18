@@ -15,7 +15,7 @@ class CustomTextField extends StatefulWidget {
   final Widget? suffixIcon;
   final bool enabled;
   final Function(String)? onChanged;
-  final String? documentType; // NUEVO: Para manejar el tipo de documento
+  final String? documentType;
 
   const CustomTextField({
     super.key,
@@ -32,7 +32,7 @@ class CustomTextField extends StatefulWidget {
     this.suffixIcon,
     this.enabled = true,
     this.onChanged,
-    this.documentType, // NUEVO
+    this.documentType,
   });
 
   @override
@@ -57,17 +57,16 @@ class _CustomTextFieldState extends State<CustomTextField> {
         ),
         const SizedBox(height: 8),
         TextFormField(
-          // CLAVE ÚNICA QUE INCLUYE EL TIPO DE DOCUMENTO PARA FORZAR REBUILD
-          key: ValueKey('${widget.label}_${widget.maxLength}_${widget.documentType}'), 
+          // Clave única que fuerza la reconstrucción cuando cambia el tipo de documento
+          key: ValueKey('${widget.label}_${widget.documentType}_${widget.maxLength}_${widget.isNumeric}'),
           controller: widget.controller,
           validator: widget.validator,
           obscureText: widget.isPassword ? _obscureText : false,
           enabled: widget.enabled,
           maxLength: widget.maxLength,
           onChanged: widget.onChanged,
-          keyboardType: widget.keyboardType ?? 
-            (widget.isNumeric ? TextInputType.number : TextInputType.text),
-          inputFormatters: widget.inputFormatters ?? _getInputFormatters(),
+          keyboardType: _getKeyboardType(),
+          inputFormatters: _getInputFormatters(),
           decoration: InputDecoration(
             hintText: widget.hintText,
             prefixIcon: widget.prefixIcon,
@@ -92,58 +91,115 @@ class _CustomTextFieldState extends State<CustomTextField> {
             filled: true,
             fillColor: widget.enabled ? Colors.white : Colors.grey[100],
             errorMaxLines: 2,
+            counterText: widget.maxLength != null ? null : '', // Oculta contador si no hay maxLength
           ),
         ),
       ],
     );
   }
 
+  TextInputType _getKeyboardType() {
+    // Si se especifica un keyboardType personalizado, lo usa
+    if (widget.keyboardType != null) {
+      return widget.keyboardType!;
+    }
+    
+    // Para documentos específicos
+    if (widget.documentType != null) {
+      switch (widget.documentType) {
+        case 'CC':
+        case 'TI':
+          return TextInputType.number;
+        case 'CE':
+        case 'PP':
+          return TextInputType.text; // Alfanumérico
+        default:
+          return widget.isNumeric ? TextInputType.number : TextInputType.text;
+      }
+    }
+    
+    // Comportamiento por defecto
+    return widget.isNumeric ? TextInputType.number : TextInputType.text;
+  }
+
   List<TextInputFormatter> _getInputFormatters() {
+    // Si hay formatters personalizados, los usa
+    if (widget.inputFormatters != null) {
+      return widget.inputFormatters!;
+    }
+
+    // Para campos de documento específicos
+    if (widget.documentType != null) {
+      switch (widget.documentType) {
+        case 'CC':
+        case 'TI':
+          return [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(widget.maxLength ?? 10),
+          ];
+        
+        case 'CE':
+          return [
+            FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+            TextInputFormatter.withFunction((oldValue, newValue) {
+              return newValue.copyWith(
+                text: newValue.text.toUpperCase(),
+              );
+            }),
+            LengthLimitingTextInputFormatter(widget.maxLength ?? 12),
+          ];
+        
+        case 'PP':
+          return [
+            FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+            TextInputFormatter.withFunction((oldValue, newValue) {
+              return newValue.copyWith(
+                text: newValue.text.toUpperCase(),
+              );
+            }),
+            LengthLimitingTextInputFormatter(widget.maxLength ?? 12),
+          ];
+      }
+    }
+
+    // Para campos numéricos generales
     if (widget.isNumeric) {
       return [
         FilteringTextInputFormatter.digitsOnly,
         FilteringTextInputFormatter.deny(RegExp(r'[^0-9]')),
+        if (widget.maxLength != null) 
+          LengthLimitingTextInputFormatter(widget.maxLength!),
       ];
     }
     
+    // Para campos de email
     if (widget.keyboardType == TextInputType.emailAddress) {
       return [
         FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9@._+-]')),
-        TextInputFormatter.withFunction(
-          (oldValue, newValue) {
-            return newValue.copyWith(
-              text: newValue.text.toLowerCase(),
-            );
-          },
-        ),
+        TextInputFormatter.withFunction((oldValue, newValue) {
+          return newValue.copyWith(
+            text: newValue.text.toLowerCase(),
+          );
+        }),
       ];
     }
 
-    // Para campos de documento que pueden ser alfanuméricos
-    if (widget.documentType != null && 
-        (widget.documentType == 'CE' || widget.documentType == 'PP')) {
-      return [
-        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-        TextInputFormatter.withFunction(
-          (oldValue, newValue) {
-            return newValue.copyWith(
-              text: newValue.text.toUpperCase(),
-            );
-          },
-        ),
-      ];
-    }
-
-    // Para campos de texto normales
+    // Para campos de texto normales (nombres, apellidos)
     return [
       FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]')),
-      TextInputFormatter.withFunction(
-        (oldValue, newValue) {
-          return newValue.copyWith(
-            text: newValue.text.toUpperCase(),
-          );
-        },
-      ),
+      TextInputFormatter.withFunction((oldValue, newValue) {
+        // Capitalizar primera letra de cada palabra
+        String text = newValue.text;
+        if (text.isNotEmpty) {
+          text = text.split(' ').map((word) {
+            if (word.isNotEmpty) {
+              return word[0].toUpperCase() + word.substring(1).toLowerCase();
+            }
+            return word;
+          }).join(' ');
+        }
+        return newValue.copyWith(text: text);
+      }),
     ];
   }
 }

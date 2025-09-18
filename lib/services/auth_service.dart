@@ -11,12 +11,10 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Get current user
   User? get currentUser => _auth.currentUser;
   Stream<User?> get authStateChanges => _auth.authStateChanges();
   bool get isLoggedIn => currentUser != null;
 
-  // ========== UTILIDADES PRIVADAS ==========
 
   String _hashPin(String pin) {
     var bytes = utf8.encode("${pin}PIN_SALT_2024");
@@ -83,8 +81,6 @@ class AuthService {
     return (random.nextInt(900000) + 100000).toString();
   }
 
-  // ========== REGISTRO CON VALIDACIONES MEJORADAS ==========
-
   Future<UserModel> registerUser({
     required String email,
     required String fullName,
@@ -98,12 +94,10 @@ class AuthService {
     String? savingsAccountNumber,
   }) async {
     try {
-      // 1. Limpiar y normalizar datos de entrada
       fullName = ValidationService.standardizeName(fullName);
       phoneNumber = ValidationService.cleanNumber(phoneNumber);
       documentNumber = documentNumber.trim();
 
-      // Limpiar números de cuenta según el tipo
       if (nequiPhoneNumber != null) {
         nequiPhoneNumber = ValidationService.cleanNumber(nequiPhoneNumber);
       }
@@ -114,7 +108,6 @@ class AuthService {
         savingsAccountNumber = ValidationService.cleanNumber(savingsAccountNumber);
       }
 
-      // 2. Validaciones básicas
       String? accountIdentifier;
       switch (accountType) {
         case AccountType.nequi:
@@ -149,7 +142,6 @@ class AuthService {
         throw Exception(firstError);
       }
 
-      // 3. Verificaciones de existencia
       if (await checkEmailExists(email)) {
         throw Exception('Este correo electrónico ya está registrado.');
       }
@@ -174,10 +166,9 @@ class AuthService {
         throw Exception('Este $accountTypeName ya está registrado.');
       }
 
-      // 4. Generar contraseña segura
       final password = _generateSecurePassword(email);
       
-      // 5. Crear usuario en Firebase Auth con reintentos
+      //Crear usuario en Firebase Auth con reintentos
       UserCredential? userCredential;
       int retries = 0;
       const maxRetries = 3;
@@ -205,7 +196,7 @@ class AuthService {
 
       final user = userCredential.user!;
       
-      // 6. Actualizar perfil del usuario
+      //Actualizar perfil del usuario
       try {
         await user.updateDisplayName(fullName);
         await user.reload();
@@ -213,7 +204,7 @@ class AuthService {
         print('Warning: No se pudo actualizar el nombre del usuario: $e');
       }
       
-      // 7. Crear modelo de usuario con balances iniciales
+      // Crear modelo de usuario con balances iniciales
       final userModel = UserModel(
         uid: user.uid,
         email: email,
@@ -244,7 +235,7 @@ class AuthService {
         blockedUntil: null,
       );
 
-      // 8. Guardar en Firestore con reintentos
+      //Guardar en Firestore con reintentos
       retries = 0;
       while (retries < maxRetries) {
         try {
@@ -277,19 +268,17 @@ class AuthService {
     }
   }
 
-  // ========== LOGIN MEJORADO ==========
-
   Future<UserModel> loginUser({
     required AccountType accountType,
     required String accountIdentifier,
     required String pin,
   }) async {
     try {
-      // 1. Normalizar datos de entrada
+      //Normalizar datos de entrada
       accountIdentifier = accountIdentifier.trim();
       pin = pin.trim();
 
-      // 2. Validaciones básicas
+      //Validaciones básicas
       final validationErrors = ValidationService.validateLoginData(
         accountType: accountType,
         accountIdentifier: accountIdentifier,
@@ -301,14 +290,14 @@ class AuthService {
         throw Exception(firstError);
       }
 
-      // 3. Buscar usuario por identificador de cuenta
+      //Buscar usuario por identificador de cuenta
       UserModel? userModel = await _findUserByAccountIdentifier(accountType, accountIdentifier);
       
       if (userModel == null) {
         throw Exception('No se encontró una cuenta con estos datos.');
       }
 
-      // 4. Verificar estado de la cuenta
+      //Verificar estado de la cuenta
       if (userModel.isBlocked) {
         if (userModel.blockedUntil != null && DateTime.now().isBefore(userModel.blockedUntil!)) {
           final remaining = userModel.blockedUntil!.difference(DateTime.now()).inMinutes + 1;
@@ -320,18 +309,18 @@ class AuthService {
         }
       }
 
-      // 5. Verificar PIN
+      //Verificar PIN
       if (userModel.hashedPin != _hashPin(pin)) {
         await _incrementFailedAttempts(userModel.uid);
         throw Exception('PIN incorrecto.');
       }
 
-      // 6. Verificar que el tipo de cuenta esté habilitado
+      //Verificar que el tipo de cuenta esté habilitado
       if (!_isAccountTypeEnabled(userModel, accountType)) {
         throw Exception('Este tipo de cuenta no está habilitado para tu usuario.');
       }
 
-      // 7. Autenticar en Firebase
+      //Autenticar en Firebase
       final password = _generateSecurePassword(userModel.email);
       
       try {
@@ -346,7 +335,7 @@ class AuthService {
         throw Exception(_handleAuthException(e));
       }
 
-      // 8. Actualizar datos de login exitoso
+      //Actualizar datos de login exitoso
       await _resetFailedAttempts(userModel.uid);
       await _firestore.collection('users').doc(userModel.uid).update({
         'lastLogin': Timestamp.fromDate(DateTime.now()),
@@ -364,7 +353,6 @@ class AuthService {
     }
   }
 
-  // ========== MÉTODOS DE VERIFICACIÓN ==========
   
   Future<bool> checkEmailExists(String email) async {
     try {
@@ -482,7 +470,6 @@ class AuthService {
     }
   }
 
-  // ========== MANEJO DE INTENTOS FALLIDOS ==========
 
   Future<void> _incrementFailedAttempts(String uid) async {
     try {
@@ -533,7 +520,6 @@ class AuthService {
     }
   }
 
-  // ========== LOGOUT ==========
 
   Future<void> logout() async {
     try {
@@ -542,8 +528,6 @@ class AuthService {
       throw Exception('Error al cerrar sesión: $e');
     }
   }
-
-  // ========== MANEJO DE ERRORES ==========
 
   String _handleAuthException(FirebaseAuthException e) {
     switch (e.code) {

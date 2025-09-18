@@ -13,9 +13,9 @@ class AppConstants {
   static const String savingsAccountTitle = 'Cuenta de Ahorros';
 
   // Descripciones
-  static const String nequiDescription = 'Retiros con número de celular (10 dígitos)';
-  static const String savingsHandDescription = 'Cuenta que inicia con 0 o 1, segundo dígito 3';
-  static const String savingsAccountDescription = 'Cuenta de ahorros tradicional (11 dígitos)';
+  static const String nequiDescription = 'Retiros con número de celular';
+  static const String savingsHandDescription = 'Retiros con tu cuenta de ahorro a la mano';
+  static const String savingsAccountDescription = 'Retiros con tu cuenta de ahorros';
 
   // Tipos de documento
   static const List<String> documentTypes = ['CC', 'TI', 'CE', 'PP'];

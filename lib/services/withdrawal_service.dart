@@ -4,14 +4,14 @@ import '../models/user_model.dart';
 import '../utils/constants.dart';
 
 class WithdrawalService {
-  // Billetes disponibles en orden ascendente
+
   static const List<int> availableBills = [10000, 20000, 50000, 100000];
 
-  /// Implementación de la metodología del acarreo
+
   static Map<String, dynamic> calculateBillsWithCarryMethod(double amount) {
     int targetAmount = amount.toInt();
     
-    // Llamar al nuevo algoritmo
+
     Map<int, int>? billBreakdown = _calcularBilletes(targetAmount);
     
     bool success = billBreakdown != null;
@@ -27,7 +27,7 @@ class WithdrawalService {
     };
   }
   
-  /// Nuevo algoritmo para calcular billetes
+
   static Map<int, int>? _calcularBilletes(int targetAmount) {
   if (targetAmount % 10000 != 0) return null;
 
@@ -72,12 +72,8 @@ class WithdrawalService {
         }
       }
 
-      // Si fila no agregó nada no reiniciamos el acumulado,
-      // simplemente seguimos a la siguiente fila (como la matriz que mostraste).
     }
 
-    // Si después de recorrer las 4 filas NO se añadió ningún billete,
-    // entonces no hay combinación factible con esta estrategia.
     if (!addedInFullCycle) {
       return null;
     }
@@ -244,8 +240,7 @@ class WithdrawalService {
     }
     return enteredCode == validCode;
   }
-  
-  // ========== MÉTODOS PRIVADOS DE UTILIDAD ==========
+
   
   static double _getCurrentBalance(UserModel user, AccountType accountType) {
     switch (accountType) {
