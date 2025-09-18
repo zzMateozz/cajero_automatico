@@ -114,44 +114,6 @@ class TransactionModel {
     return breakdown;
   }
 
-  // MÉTODO CRÍTICO: Calcula el desglose de billetes usando metodología del acarreo
-  static Map<int, int> calculateBillBreakdown(double amount) {
-    Map<int, int> breakdown = {100000: 0, 50000: 0, 20000: 0, 10000: 0};
-    int remaining = amount.toInt();
-    
-    // Metodología del acarreo - billetes de mayor a menor
-    List<int> denominations = [100000, 50000, 20000, 10000];
-    
-    for (int denomination in denominations) {
-      int count = remaining ~/ denomination;
-      if (count > 0) {
-        breakdown[denomination] = count;
-        remaining -= (count * denomination);
-      }
-    }
-    
-    return breakdown;
-  }
-
-  // Valida si es un monto dispensable (sin billetes de 5000)
-  static bool canDispense(double amount) {
-    if (amount < 10000 || amount % 10000 != 0) return false;
-    
-    Map<int, int> breakdown = calculateBillBreakdown(amount);
-    int total = 0;
-    
-    breakdown.forEach((denomination, count) {
-      total += denomination * count;
-    });
-    
-    return total == amount.toInt();
-  }
-
-  // Genera código de autorización de 6 dígitos para NEQUI
-  static String generateAuthCode() {
-    var random = DateTime.now().millisecondsSinceEpoch;
-    return (random % 1000000).toString().padLeft(6, '0');
-  }
 
   // Verifica si el código de autorización está vigente
   bool isAuthCodeValid() {
@@ -165,24 +127,6 @@ class TransactionModel {
       return '0$phoneNumber'; // Convierte 10 dígitos a 11
     }
     return accountNumber ?? phoneNumber ?? '';
-  }
-
-  // Calcula retiros posibles restantes
-  Map<String, dynamic> calculatePossibleWithdrawals(double availableBalance) {
-    List<double> commonAmounts = [10000, 20000, 50000, 100000, 200000, 300000, 500000];
-    List<double> possible = [];
-    
-    for (double amount in commonAmounts) {
-      if (amount <= availableBalance && canDispense(amount)) {
-        possible.add(amount);
-      }
-    }
-    
-    return {
-      'amounts': possible,
-      'maxAmount': availableBalance,
-      'canDispenseMax': canDispense(availableBalance)
-    };
   }
 
   Map<String, dynamic> toMap() {

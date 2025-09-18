@@ -7,7 +7,7 @@ class ValidationService {
   static bool isValidNequiPhone(String phone) {
     return phone.length == 10 && 
            RegExp(r'^[0-9]+$').hasMatch(phone) &&
-           !phone.contains(RegExp(r'[a-zA-Z!@#$%^&*(),.?":{}|<>]'));
+           !phone.contains(RegExp(r'[a-zA-Z!@#$%^&*(),.?":{}|<>_\-\s]'));
   }
 
   // Validaciones para Ahorro a la Mano (Tipo 2)
@@ -30,7 +30,7 @@ class ValidationService {
   static bool isValidSavingsAccount(String account) {
     return account.length == 11 && 
            RegExp(r'^[0-9]{11}$').hasMatch(account) &&
-           !account.contains(RegExp(r'[a-zA-Z!@#$%^&*(),.?":{}|<>]'));
+           !account.contains(RegExp(r'[a-zA-Z!@#$%^&*(),.?":{}|<>_\-\s]'));
   }
 
   // Validación de PIN (4 dígitos)
@@ -40,34 +40,69 @@ class ValidationService {
 
   // Validación de email
   static bool isValidEmail(String email) {
-    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
-  }
+  // Regex más flexible que permite caracteres especiales válidos
+  return RegExp(
+    r'^[a-zA-Z0-9.!#$%&\*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$'
+  ).hasMatch(email.trim());
+}
 
-  // Validación de documento
-  static bool isValidDocument(String document) {
-    return document.isNotEmpty && 
-           document.length >= 6 && 
-           document.length <= 15 &&
-           RegExp(r'^[0-9]+$').hasMatch(document);
+  // Validación de documento según tipo
+  static bool isValidDocument(String document, String documentType) {
+    document = document.trim();
+    
+    switch (documentType) {
+      case 'CC': // Cédula de Ciudadanía
+        return document.length >= 8 && 
+               document.length <= 10 && 
+               RegExp(r'^[0-9]+$').hasMatch(document);
+      case 'TI': // Tarjeta de Identidad
+        return document.length >= 8 && 
+               document.length <= 10 && 
+               RegExp(r'^[0-9]+$').hasMatch(document);
+      case 'CE': // Cédula de Extranjería (puede ser alfanumérico)
+        return document.length >= 6 && 
+               document.length <= 12 && 
+               RegExp(r'^[a-zA-Z0-9]+$').hasMatch(document);
+      case 'PP': // Pasaporte (alfanumérico)
+        return document.length >= 6 && 
+               document.length <= 12 && 
+               RegExp(r'^[a-zA-Z0-9]+$').hasMatch(document);
+      default:
+        return false;
+    }
   }
 
   // Validación de nombres (sin números ni caracteres especiales)
   static bool isValidName(String name) {
-    return name.isNotEmpty && 
-           name.length >= 2 &&
-           RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$').hasMatch(name);
+    return name.trim().isNotEmpty && 
+           name.trim().length >= 2 &&
+           RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$').hasMatch(name.trim());
   }
 
   // Validación de teléfono general (10 dígitos)
   static bool isValidPhone(String phone) {
-    return phone.length == 10 && RegExp(r'^[0-9]{10}$').hasMatch(phone);
+    return phone.length == 10 && 
+           RegExp(r'^[0-9]{10}$').hasMatch(phone) &&
+           !phone.contains(RegExp(r'[a-zA-Z!@#$%^&*(),.?":{}|<>_\-\s]'));
+  }
+
+  // Estandarizar nombre a mayúsculas
+  static String standardizeName(String name) {
+    return name.trim().toUpperCase();
+  }
+
+
+
+  // Limpiar y estandarizar números (eliminar espacios, guiones, etc.)
+  static String cleanNumber(String number) {
+    return number.replaceAll(RegExp(r'[^0-9]'), '');
   }
 
   // ========== VALIDACIONES DE REGLAS DE NEGOCIO ==========
 
   // Validar si el PIN es predecible o inseguro
   static bool isPinPredictable(String pin) {
-    if (!isValidPin(pin)) return true; // Si no es válido, es considerado predecible
+    if (!isValidPin(pin)) return true;
     
     // PINs obviamente inseguros
     if (pin == '1234' || pin == '0000' || pin == '1111' || pin == '2222' || 
@@ -108,6 +143,9 @@ class ValidationService {
     if (phone.isEmpty) return 'El número de teléfono es requerido';
     if (phone.length != 10) return 'El número debe tener exactamente 10 dígitos';
     if (!RegExp(r'^[0-9]+$').hasMatch(phone)) return 'Solo se permiten números (0-9)';
+    if (phone.contains(RegExp(r'[a-zA-Z!@#$%^&*(),.?":{}|<>_\-\s]'))) {
+      return 'No se permiten caracteres especiales, letras o espacios';
+    }
     return '';
   }
 
@@ -117,6 +155,9 @@ class ValidationService {
     if (account[0] != '0' && account[0] != '1') return 'Debe iniciar con 0 o 1';
     if (account.length > 1 && account[1] != '3') return 'El segundo dígito debe ser 3';
     if (!RegExp(r'^[0-9]+$').hasMatch(account)) return 'Solo se permiten números (0-9)';
+    if (account.contains(RegExp(r'[a-zA-Z!@#$%^&*(),.?":{}|<>_\-\s]'))) {
+      return 'No se permiten caracteres especiales, letras o espacios';
+    }
     return '';
   }
 
@@ -124,6 +165,9 @@ class ValidationService {
     if (account.isEmpty) return 'El número de cuenta es requerido';
     if (account.length != 11) return 'El número debe tener exactamente 11 dígitos';
     if (!RegExp(r'^[0-9]+$').hasMatch(account)) return 'Solo se permiten números (0-9)';
+    if (account.contains(RegExp(r'[a-zA-Z!@#$%^&*(),.?":{}|<>_\-\s]'))) {
+      return 'No se permiten caracteres especiales, letras o espacios';
+    }
     return '';
   }
 
@@ -141,18 +185,39 @@ class ValidationService {
     return '';
   }
 
-  static String getDocumentError(String document) {
+  static String getDocumentError(String document, String documentType) {
     if (document.isEmpty) return 'El número de documento es requerido';
-    if (document.length < 6) return 'El documento debe tener al menos 6 dígitos';
-    if (document.length > 15) return 'El documento no puede tener más de 15 dígitos';
-    if (!RegExp(r'^[0-9]+$').hasMatch(document)) return 'Solo se permiten números';
+    
+    switch (documentType) {
+      case 'CC':
+        if (document.length < 8) return 'La cédula debe tener al menos 8 dígitos';
+        if (document.length > 10) return 'La cédula no puede tener más de 10 dígitos';
+        if (!RegExp(r'^[0-9]+$').hasMatch(document)) return 'Solo se permiten números';
+        break;
+      case 'TI':
+        if (document.length < 8) return 'La tarjeta de identidad debe tener al menos 8 dígitos';
+        if (document.length > 10) return 'La tarjeta de identidad no puede tener más de 10 dígitos';
+        if (!RegExp(r'^[0-9]+$').hasMatch(document)) return 'Solo se permiten números';
+        break;
+      case 'CE':
+        if (document.length < 6) return 'La cédula de extranjería debe tener al menos 6 caracteres';
+        if (document.length > 12) return 'La cédula de extranjería no puede tener más de 12 caracteres';
+        if (!RegExp(r'^[a-zA-Z0-9]+$').hasMatch(document)) return 'Solo se permiten letras y números';
+        break;
+      case 'PP':
+        if (document.length < 6) return 'El pasaporte debe tener al menos 6 caracteres';
+        if (document.length > 12) return 'El pasaporte no puede tener más de 12 caracteres';
+        if (!RegExp(r'^[a-zA-Z0-9]+$').hasMatch(document)) return 'Solo se permiten letras y números';
+        break;
+    }
+    
     return '';
   }
 
   static String getNameError(String name) {
     if (name.isEmpty) return 'Este campo es requerido';
-    if (name.length < 2) return 'Debe tener al menos 2 caracteres';
-    if (!RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$').hasMatch(name)) {
+    if (name.trim().length < 2) return 'Debe tener al menos 2 caracteres';
+    if (!RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$').hasMatch(name.trim())) {
       return 'Solo se permiten letras y espacios';
     }
     return '';
@@ -177,6 +242,7 @@ class ValidationService {
     required String email,
     required String fullName,
     required String phoneNumber,
+    required String documentType,
     required String documentNumber,
     required String pin,
     required AccountType accountType,
@@ -185,16 +251,16 @@ class ValidationService {
     Map<String, String> errors = {};
 
     // Validar campos básicos
-    String emailError = getEmailError(email.trim());
+    String emailError = getEmailError(email);
     if (emailError.isNotEmpty) errors['email'] = emailError;
 
-    String nameError = getNameError(fullName.trim());
+    String nameError = getNameError(fullName);
     if (nameError.isNotEmpty) errors['fullName'] = nameError;
 
-    String phoneError = getPhoneError(phoneNumber.trim());
+    String phoneError = getPhoneError(phoneNumber);
     if (phoneError.isNotEmpty) errors['phoneNumber'] = phoneError;
 
-    String documentError = getDocumentError(documentNumber.trim());
+    String documentError = getDocumentError(documentNumber, documentType);
     if (documentError.isNotEmpty) errors['documentNumber'] = documentError;
 
     String pinError = getPinError(pin);
@@ -202,7 +268,7 @@ class ValidationService {
 
     // Validar identificador de cuenta según el tipo
     if (accountIdentifier != null) {
-      String accountError = validateAccountIdentifier(accountType, accountIdentifier.trim());
+      String accountError = validateAccountIdentifier(accountType, accountIdentifier);
       if (accountError.isNotEmpty) errors['accountIdentifier'] = accountError;
     }
 
@@ -217,7 +283,7 @@ class ValidationService {
   }) {
     Map<String, String> errors = {};
 
-    String accountError = validateAccountIdentifier(accountType, accountIdentifier.trim());
+    String accountError = validateAccountIdentifier(accountType, accountIdentifier);
     if (accountError.isNotEmpty) errors['accountIdentifier'] = accountError;
 
     String pinError = getPinError(pin);

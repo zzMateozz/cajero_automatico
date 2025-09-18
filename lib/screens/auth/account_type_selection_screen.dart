@@ -3,7 +3,7 @@ import '../../utils/constants.dart';
 import 'login_screen.dart';
 
 class AccountTypeSelectionScreen extends StatelessWidget {
-  const AccountTypeSelectionScreen({Key? key}) : super(key: key);
+  const AccountTypeSelectionScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -65,21 +65,18 @@ class AccountTypeSelectionScreen extends StatelessWidget {
                       _buildAccountTypeCard(
                         context,
                         AccountType.nequi,
-                        Icons.phone_android,
                         Colors.purple,
                       ),
                       const SizedBox(height: 20),
                       _buildAccountTypeCard(
                         context,
                         AccountType.savingsHand,
-                        Icons.handshake,
                         Colors.orange,
                       ),
                       const SizedBox(height: 20),
                       _buildAccountTypeCard(
                         context,
                         AccountType.savingsAccount,
-                        Icons.account_balance,
                         Colors.blue,
                       ),
                     ],
@@ -121,7 +118,6 @@ class AccountTypeSelectionScreen extends StatelessWidget {
   Widget _buildAccountTypeCard(
     BuildContext context,
     AccountType accountType,
-    IconData icon,
     Color accentColor,
   ) {
     return Container(
@@ -152,10 +148,11 @@ class AccountTypeSelectionScreen extends StatelessWidget {
                     color: accentColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    icon,
-                    size: 32,
-                    color: accentColor,
+                  child: Image.asset(
+                    accountType.imagePath,
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.contain,
                   ),
                 ),
                 const SizedBox(width: 20),

@@ -1,3 +1,4 @@
+import 'package:cajero_automatico/screens/home/home_screen.dart';
 import 'package:cajero_automatico/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import '../../utils/constants.dart';
@@ -11,7 +12,7 @@ import 'register_screen.dart';
 class LoginScreen extends StatefulWidget {
   final AccountType accountType;
 
-  const LoginScreen({Key? key, required this.accountType}) : super(key: key);
+  const LoginScreen({super.key, required this.accountType});
 
   @override
   _LoginScreenState createState() => _LoginScreenState();
@@ -75,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       topRight: Radius.circular(30),
                     ),
                   ),
-                  child: SingleChildScrollView( // ← AGREGADO PARA EVITAR OVERFLOW
+                  child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
                     child: Padding(
                       padding: const EdgeInsets.all(24.0),
@@ -111,9 +112,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      _getAccountIcon(),
+                                      _getAccountImagen(),
                                       const SizedBox(width: 8),
-                                      Flexible( // ← AGREGADO PARA TEXTOS LARGOS
+                                      Flexible(
                                         child: Text(
                                           widget.accountType.title,
                                           style: const TextStyle(
@@ -139,7 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
 
-                            const SizedBox(height: 32), // ← REDUCIDO DE 40 A 32
+                            const SizedBox(height: 32),
 
                             // Campo de cuenta/teléfono
                             CustomTextField(
@@ -152,25 +153,21 @@ class _LoginScreenState extends State<LoginScreen> {
                               prefixIcon: Icon(_getAccountIcon().icon),
                             ),
 
-                            const SizedBox(height: 20), // ← REDUCIDO DE 24 A 20
+                            const SizedBox(height: 20),
 
-                            // Campo PIN
+                            // Campo PIN - SIEMPRE ES DE 4 DÍGITOS PARA LOGIN
                             CustomTextField(
-                              label: widget.accountType == AccountType.nequi 
-                                  ? 'Código de autorización (6 dígitos)' 
-                                  : 'PIN (4 dígitos)',
-                              hintText: widget.accountType == AccountType.nequi 
-                                  ? 'Ingresa el código que aparece en pantalla'
-                                  : 'Ingresa tu PIN de 4 dígitos',
+                              label: 'PIN (4 dígitos)',
+                              hintText: 'Ingresa tu PIN de 4 dígitos',
                               controller: _pinController,
                               isPassword: true,
                               isNumeric: true,
-                              maxLength: widget.accountType == AccountType.nequi ? 6 : 4,
+                              maxLength: 4,
                               validator: _validatePin,
                               prefixIcon: const Icon(Icons.lock),
                             ),
 
-                            const SizedBox(height: 28), // ← REDUCIDO DE 32 A 28
+                            const SizedBox(height: 28),
 
                             // Botón de login
                             CustomButton(
@@ -179,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               isLoading: _isLoading,
                             ),
 
-                            const SizedBox(height: 20), // ← REDUCIDO DE 24 A 20
+                            const SizedBox(height: 20),
 
                             // Divider
                             Row(
@@ -196,7 +193,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ],
                             ),
 
-                            const SizedBox(height: 20), // ← REDUCIDO DE 24 A 20
+                            const SizedBox(height: 20),
 
                             // Botón de registro
                             OutlinedButton(
@@ -218,7 +215,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
 
-                            const SizedBox(height: 24), // ← ESPACIO FIJO ANTES DE LA NOTA
+                            const SizedBox(height: 24),
 
                             // Nota informativa
                             Container(
@@ -228,7 +225,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start, // ← MEJORADO
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Icon(Icons.info_outline, color: Colors.blue, size: 20),
                                   const SizedBox(width: 8),
@@ -245,7 +242,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
 
-                            const SizedBox(height: 20), // ← ESPACIO AL FINAL
+                            const SizedBox(height: 20),
                           ],
                         ),
                       ),
@@ -260,6 +257,8 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  
+
   Icon _getAccountIcon() {
     switch (widget.accountType) {
       case AccountType.nequi:
@@ -269,6 +268,14 @@ class _LoginScreenState extends State<LoginScreen> {
       case AccountType.savingsAccount:
         return const Icon(Icons.account_balance, color: Colors.blue);
     }
+  }
+  Widget _getAccountImagen({double size = 40}) {
+  return Image.asset(
+    widget.accountType.imagePath,
+    width: size,
+    height: size,
+    fit: BoxFit.contain,
+  );
   }
 
   String _getAccountLabel() {
@@ -304,30 +311,33 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   String _getInfoText() {
-    switch (widget.accountType) {
-      case AccountType.nequi:
-        return 'Para NEQUI, el código aparecerá en pantalla por 60 segundos';
-      case AccountType.savingsHand:
-        return 'Cuenta debe iniciar con 0 o 1, segundo dígito debe ser 3';
-      case AccountType.savingsAccount:
-        return 'Ingresa tu número de cuenta de ahorros de 11 dígitos';
-    }
+  switch (widget.accountType) {
+    case AccountType.nequi:
+      return 'Tu PIN de 4 dígitos es para iniciar sesión.\nEl código de 6 dígitos solo se usa en retiros.';
+    case AccountType.savingsHand:
+      return 'Cuenta debe iniciar con 0 o 1, segundo dígito debe ser 3';
+    case AccountType.savingsAccount:
+      return 'Ingresa tu número de cuenta de ahorros de 11 dígitos';
   }
+}
 
   String? _validateAccount(String? value) {
     if (value == null || value.isEmpty) {
       return 'Este campo es requerido';
     }
 
+    // Limpiar el valor antes de validar
+    final cleanedValue = ValidationService.cleanNumber(value);
+
     switch (widget.accountType) {
       case AccountType.nequi:
-        final error = ValidationService.getPhoneError(value);
+        final error = ValidationService.getPhoneError(cleanedValue);
         return error.isEmpty ? null : error;
       case AccountType.savingsHand:
-        final error = ValidationService.getSavingsHandError(value);
+        final error = ValidationService.getSavingsHandError(cleanedValue);
         return error.isEmpty ? null : error;
       case AccountType.savingsAccount:
-        final error = ValidationService.getSavingsAccountError(value);
+        final error = ValidationService.getSavingsAccountError(cleanedValue);
         return error.isEmpty ? null : error;
     }
   }
@@ -337,64 +347,56 @@ class _LoginScreenState extends State<LoginScreen> {
       return 'Este campo es requerido';
     }
 
-    if (widget.accountType == AccountType.nequi) {
-      if (value.length != 6) {
-        return 'El código debe tener exactamente 6 dígitos';
-      }
-      if (!RegExp(r'^[0-9]{6}').hasMatch(value)) {
-        return 'Solo se permiten números';
-      }
-    } else {
-      final error = ValidationService.getPinError(value);
-      if (error.isNotEmpty) return error;
-    }
+    // Siempre validar como PIN de 4 dígitos
+    final error = ValidationService.getPinError(value);
+    if (error.isNotEmpty) return error;
 
     return null;
   }
 
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) {
-      await CustomAlertDialog.showErrorDialog(
-        context,
-        'Datos incompletos',
-        'Por favor, corrige los campos marcados en rojo antes de continuar.',
-      );
-      return;
-    }
+      try {
+    // Limpiar los valores antes de enviarlos
+    final cleanedAccount = ValidationService.cleanNumber(_accountController.text);
+    final cleanedPin = _pinController.text;
 
-    setState(() => _isLoading = true);
+    // Llamar al servicio de autenticación y ALMACENAR el resultado
+    final userModel = await _authService.loginUser(
+      accountType: widget.accountType,
+      accountIdentifier: cleanedAccount,
+      pin: cleanedPin,
+    );
 
-    try {
-      // Llamar al servicio de autenticación
-      final userModel = await _authService.loginUser(
-        accountType: widget.accountType,
-        accountIdentifier: _accountController.text,
-        pin: _pinController.text,
-      );
+    // Login exitoso
+    await CustomAlertDialog.showSuccessDialog(
+      context,
+      'Login exitoso',
+      'Bienvenido a tu ${widget.accountType.title}',
+    );
 
-      // Login exitoso
-      await CustomAlertDialog.showSuccessDialog(
-        context,
-        'Login exitoso',
-        'Bienvenido a tu ${widget.accountType.title}',
-      );
-
-      // TODO: Navegar al home correspondiente
-      // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomeScreen(user: userModel)));
-      
-    } catch (e) {
-      await CustomAlertDialog.showErrorDialog(
-        context,
-        'Error de autenticación',
-        e.toString(),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    // Navegar al HomeScreen (ahora userModel SÍ está definido)
+    Navigator.pushReplacement(
+      context, 
+      MaterialPageRoute(
+        builder: (context) => HomeScreen(
+          user: userModel,
+          accountType: widget.accountType,
+        ),
+      ),
+    );
+    
+  } catch (e) {
+    await CustomAlertDialog.showErrorDialog(
+      context,
+      'Error de autenticación',
+      e.toString(),
+    );
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
-
+  }
 
   void _navigateToRegister() {
     Navigator.push(

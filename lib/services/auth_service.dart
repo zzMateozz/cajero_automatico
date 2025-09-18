@@ -19,16 +19,68 @@ class AuthService {
   // ========== UTILIDADES PRIVADAS ==========
 
   String _hashPin(String pin) {
-    var bytes = utf8.encode(pin + "PIN_SALT_2024");
+    var bytes = utf8.encode("${pin}PIN_SALT_2024");
     var digest = sha256.convert(bytes);
     return digest.toString();
   }
 
   // Generar contraseña más segura y consistente
   String _generateSecurePassword(String email) {
-    var bytes = utf8.encode(email.toLowerCase().trim() + "SECURE_CAJERO_2024");
+    var bytes = utf8.encode("${email.toLowerCase().trim()}SECURE_CAJERO_2024");
     var digest = sha256.convert(bytes);
     return digest.toString().substring(0, 20); // 20 caracteres para mayor seguridad
+  }
+
+  Future<Map<String, dynamic>> generateNequiAuthCode(String userId) async {
+    try {
+      final authCode = _generateNequiAuthCode();
+      final expiresAt = DateTime.now().add(const Duration(seconds: 60));
+      
+      await _firestore.collection('nequi_auth_codes').doc(userId).set({
+        'code': authCode,
+        'expiresAt': Timestamp.fromDate(expiresAt),
+        'createdAt': Timestamp.now(),
+      });
+
+      return {
+        'code': authCode,
+        'expiresAt': expiresAt,
+        'success': true,
+      };
+    } catch (e) {
+      throw Exception('Error al generar código de autorización: $e');
+    }
+  }
+
+  Future<bool> validateNequiAuthCode(String userId, String code) async {
+    try {
+      final doc = await _firestore.collection('nequi_auth_codes').doc(userId).get();
+      
+      if (!doc.exists) {
+        return false;
+      }
+
+      final data = doc.data() as Map<String, dynamic>;
+      final storedCode = data['code'] as String;
+      final expiresAt = (data['expiresAt'] as Timestamp).toDate();
+
+      // Verificar si el código coincide y no ha expirado
+      if (storedCode == code && DateTime.now().isBefore(expiresAt)) {
+        // Eliminar el código después de usarlo (uso único)
+        await _firestore.collection('nequi_auth_codes').doc(userId).delete();
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      throw Exception('Error al validar código de autorización: $e');
+    }
+  }
+
+  // Generar código NEQUI de 6 dígitos
+  String _generateNequiAuthCode() {
+    final random = Random();
+    return (random.nextInt(900000) + 100000).toString();
   }
 
   // ========== REGISTRO CON VALIDACIONES MEJORADAS ==========
@@ -47,22 +99,32 @@ class AuthService {
   }) async {
     try {
       // 1. Limpiar y normalizar datos de entrada
-      email = email.trim().toLowerCase();
-      fullName = fullName.trim();
-      phoneNumber = phoneNumber.trim();
+      fullName = ValidationService.standardizeName(fullName);
+      phoneNumber = ValidationService.cleanNumber(phoneNumber);
       documentNumber = documentNumber.trim();
+
+      // Limpiar números de cuenta según el tipo
+      if (nequiPhoneNumber != null) {
+        nequiPhoneNumber = ValidationService.cleanNumber(nequiPhoneNumber);
+      }
+      if (savingsHandAccountNumber != null) {
+        savingsHandAccountNumber = ValidationService.cleanNumber(savingsHandAccountNumber);
+      }
+      if (savingsAccountNumber != null) {
+        savingsAccountNumber = ValidationService.cleanNumber(savingsAccountNumber);
+      }
 
       // 2. Validaciones básicas
       String? accountIdentifier;
       switch (accountType) {
         case AccountType.nequi:
-          accountIdentifier = nequiPhoneNumber?.trim();
+          accountIdentifier = nequiPhoneNumber;
           break;
         case AccountType.savingsHand:
-          accountIdentifier = savingsHandAccountNumber?.trim();
+          accountIdentifier = savingsHandAccountNumber;
           break;
         case AccountType.savingsAccount:
-          accountIdentifier = savingsAccountNumber?.trim();
+          accountIdentifier = savingsAccountNumber;
           break;
       }
 
@@ -70,11 +132,17 @@ class AuthService {
         email: email,
         fullName: fullName,
         phoneNumber: phoneNumber,
+        documentType: documentType,
         documentNumber: documentNumber,
         pin: pin,
         accountType: accountType,
         accountIdentifier: accountIdentifier,
       );
+
+      if (validationErrors.isNotEmpty) {
+        String firstError = validationErrors.values.first;
+        throw Exception(firstError);
+      }
 
       if (validationErrors.isNotEmpty) {
         String firstError = validationErrors.values.first;
@@ -160,15 +228,15 @@ class AuthService {
         // Configuración específica por tipo de cuenta
         nequiPhoneNumber: accountType == AccountType.nequi ? nequiPhoneNumber?.trim() : null,
         nequiEnabled: accountType == AccountType.nequi,
-        nequiBalance: accountType == AccountType.nequi ? 50000.0 : 0.0,
+        nequiBalance: accountType == AccountType.nequi ? 2000000.0 : 0.0,
         
         savingsHandAccountNumber: accountType == AccountType.savingsHand ? savingsHandAccountNumber?.trim() : null,
         savingsHandEnabled: accountType == AccountType.savingsHand,
-        savingsHandBalance: accountType == AccountType.savingsHand ? 100000.0 : 0.0,
+        savingsHandBalance: accountType == AccountType.savingsHand ? 2000000.0 : 0.0,
         
         savingsAccountNumber: accountType == AccountType.savingsAccount ? savingsAccountNumber?.trim() : null,
         savingsAccountEnabled: accountType == AccountType.savingsAccount,
-        savingsAccountBalance: accountType == AccountType.savingsAccount ? 200000.0 : 0.0,
+        savingsAccountBalance: accountType == AccountType.savingsAccount ? 2000000.0 : 0.0,
 
         // Campos de seguridad
         failedLoginAttempts: 0,
@@ -418,26 +486,27 @@ class AuthService {
 
   Future<void> _incrementFailedAttempts(String uid) async {
     try {
-      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
-      if (!doc.exists) return;
-      
-      UserModel user = UserModel.fromFirestore(doc);
-      int newAttempts = user.failedLoginAttempts + 1;
-      
-      Map<String, dynamic> updateData = {
-        'failedLoginAttempts': newAttempts,
-      };
-
-      if (newAttempts >= 3) {
-        updateData['isBlocked'] = true;
-        updateData['blockedUntil'] = Timestamp.fromDate(
-          DateTime.now().add(const Duration(minutes: 15))
-        );
-      }
-
-      await _firestore.collection('users').doc(uid).update(updateData);
+      await _firestore.runTransaction((transaction) async {
+        final docRef = _firestore.collection('users').doc(uid);
+        final doc = await transaction.get(docRef);
+        
+        if (!doc.exists) {
+          throw Exception("El documento no existe");
+        }
+        
+        final currentAttempts = doc.get('failedLoginAttempts') ?? 0;
+        final newAttempts = currentAttempts + 1;
+        
+        transaction.update(docRef, {
+          'failedLoginAttempts': newAttempts,
+          'isBlocked': newAttempts >= 3,
+          'blockedUntil': newAttempts >= 3 ? 
+              Timestamp.fromDate(DateTime.now().add(const Duration(minutes: 15))) : 
+              null
+        });
+      });
     } catch (e) {
-      print('Error incrementing failed attempts: $e');
+      print('Error en transacción: $e');
     }
   }
 

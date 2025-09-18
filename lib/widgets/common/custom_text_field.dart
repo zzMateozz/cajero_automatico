@@ -14,9 +14,11 @@ class CustomTextField extends StatefulWidget {
   final Widget? prefixIcon;
   final Widget? suffixIcon;
   final bool enabled;
+  final Function(String)? onChanged;
+  final String? documentType; // NUEVO: Para manejar el tipo de documento
 
   const CustomTextField({
-    Key? key,
+    super.key,
     required this.label,
     this.hintText,
     required this.controller,
@@ -29,7 +31,9 @@ class CustomTextField extends StatefulWidget {
     this.prefixIcon,
     this.suffixIcon,
     this.enabled = true,
-  }) : super(key: key);
+    this.onChanged,
+    this.documentType, // NUEVO
+  });
 
   @override
   _CustomTextFieldState createState() => _CustomTextFieldState();
@@ -53,15 +57,17 @@ class _CustomTextFieldState extends State<CustomTextField> {
         ),
         const SizedBox(height: 8),
         TextFormField(
+          // CLAVE ÚNICA QUE INCLUYE EL TIPO DE DOCUMENTO PARA FORZAR REBUILD
+          key: ValueKey('${widget.label}_${widget.maxLength}_${widget.documentType}'), 
           controller: widget.controller,
           validator: widget.validator,
           obscureText: widget.isPassword ? _obscureText : false,
           enabled: widget.enabled,
           maxLength: widget.maxLength,
+          onChanged: widget.onChanged,
           keyboardType: widget.keyboardType ?? 
             (widget.isNumeric ? TextInputType.number : TextInputType.text),
-          inputFormatters: widget.inputFormatters ?? 
-            (widget.isNumeric ? [FilteringTextInputFormatter.digitsOnly] : null),
+          inputFormatters: widget.inputFormatters ?? _getInputFormatters(),
           decoration: InputDecoration(
             hintText: widget.hintText,
             prefixIcon: widget.prefixIcon,
@@ -85,9 +91,59 @@ class _CustomTextFieldState extends State<CustomTextField> {
             ),
             filled: true,
             fillColor: widget.enabled ? Colors.white : Colors.grey[100],
+            errorMaxLines: 2,
           ),
         ),
       ],
     );
+  }
+
+  List<TextInputFormatter> _getInputFormatters() {
+    if (widget.isNumeric) {
+      return [
+        FilteringTextInputFormatter.digitsOnly,
+        FilteringTextInputFormatter.deny(RegExp(r'[^0-9]')),
+      ];
+    }
+    
+    if (widget.keyboardType == TextInputType.emailAddress) {
+      return [
+        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9@._+-]')),
+        TextInputFormatter.withFunction(
+          (oldValue, newValue) {
+            return newValue.copyWith(
+              text: newValue.text.toLowerCase(),
+            );
+          },
+        ),
+      ];
+    }
+
+    // Para campos de documento que pueden ser alfanuméricos
+    if (widget.documentType != null && 
+        (widget.documentType == 'CE' || widget.documentType == 'PP')) {
+      return [
+        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+        TextInputFormatter.withFunction(
+          (oldValue, newValue) {
+            return newValue.copyWith(
+              text: newValue.text.toUpperCase(),
+            );
+          },
+        ),
+      ];
+    }
+
+    // Para campos de texto normales
+    return [
+      FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]')),
+      TextInputFormatter.withFunction(
+        (oldValue, newValue) {
+          return newValue.copyWith(
+            text: newValue.text.toUpperCase(),
+          );
+        },
+      ),
+    ];
   }
 }

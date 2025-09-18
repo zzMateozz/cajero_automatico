@@ -10,7 +10,7 @@ import '../../widgets/common/custom_back_button.dart';
 class RegisterScreen extends StatefulWidget {
   final AccountType accountType;
 
-  const RegisterScreen({Key? key, required this.accountType}) : super(key: key);
+  const RegisterScreen({super.key, required this.accountType});
 
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
@@ -264,7 +264,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             hintText: 'ejemplo@correo.com',
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            validator: _validateEmail,
+            validator: (value) {
+              String error = ValidationService.getEmailError(value ?? '');
+              return error.isEmpty ? null : error;
+            },
             prefixIcon: const Icon(Icons.email),
           ),
           const SizedBox(height: 20),
@@ -276,7 +279,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   label: 'Nombre',
                   hintText: 'Tu nombre',
                   controller: _firstNameController,
-                  validator: _validateFirstName,
+                  validator: (value){
+                    String error = ValidationService.getNameError(value ?? '');
+                    return error.isEmpty ? null : error;
+                  },
                   prefixIcon: const Icon(Icons.person),
                 ),
               ),
@@ -286,7 +292,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   label: 'Apellido',
                   hintText: 'Tu apellido',
                   controller: _lastNameController,
-                  validator: _validateLastName,
+                  validator: (value){
+                    String error = ValidationService.getNameError(value ?? '');
+                    return error.isEmpty ? null : error;
+                  },
                   prefixIcon: const Icon(Icons.person_outline),
                 ),
               ),
@@ -300,7 +309,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             controller: _phoneController,
             isNumeric: true,
             maxLength: 10,
-            validator: _validatePhone,
+            validator: (value){
+              String error = ValidationService.getPhoneError(value ?? '');
+              return error.isEmpty ? null : error;
+            },
             prefixIcon: const Icon(Icons.phone),
           ),
           const SizedBox(height: 20),
@@ -317,7 +329,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           const SizedBox(height: 8),
           Row(
             children: [
-              Container(
+              SizedBox(
                 width: 100,
                 child: DropdownButtonFormField<String>(
                   value: _selectedDocumentType,
@@ -334,18 +346,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ))
                       .toList(),
                   onChanged: (value) {
-                    setState(() => _selectedDocumentType = value!);
+                    setState(() {
+                      _selectedDocumentType = value!;
+                      // Limpiar el campo cuando cambia el tipo
+                      _documentController.clear();
+                    });
                   },
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: CustomTextField(
+                  key: ValueKey('document_$_selectedDocumentType'), // Clave única para recrear el widget
                   label: '',
-                  hintText: 'Número de documento',
+                  hintText: _getDocumentHint(),
                   controller: _documentController,
-                  isNumeric: true,
-                  validator: _validateDocument,
+                  isNumeric: _isDocumentNumeric(),
+                  maxLength: _getDocumentMaxLength(),
+                  documentType: _selectedDocumentType,
+                  validator: (value) {
+                    String error = ValidationService.getDocumentError(value ?? '', _selectedDocumentType);
+                    return error.isEmpty ? null : error;
+                  },
                   prefixIcon: const Icon(Icons.badge),
                 ),
               ),
@@ -393,7 +415,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             isPassword: true,
             isNumeric: true,
             maxLength: 4,
-            validator: _validatePin,
+            validator: (value) {
+              String error = ValidationService.getPinError(value ?? '');
+              return error.isEmpty ? null : error;
+            },
             prefixIcon: const Icon(Icons.lock),
           ),
           const SizedBox(height: 20),
@@ -405,7 +430,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             isPassword: true,
             isNumeric: true,
             maxLength: 4,
-            validator: _validateConfirmPin,
+            validator: (value) {
+              String error = ValidationService.getPinError(value ?? '');
+              return error.isEmpty ? null : error;
+            },
             prefixIcon: const Icon(Icons.lock_outline),
           ),
 
@@ -447,8 +475,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _handleNavigation() {
     if (_currentPage < _formPages.length - 1) {
-      // Validar página actual antes de avanzar
-      if (_validateCurrentPage()) {
+      // Aquí forzamos la validación para que los errores aparezcan en rojo
+      if (_formKey.currentState!.validate()) {
         _pageController.nextPage(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
@@ -456,51 +484,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       } else {
         CustomAlertDialog.showErrorDialog(
           context,
-          'Datos incompletos',
-          'Por favor, completa todos los campos correctamente antes de continuar.',
+          'Campos inválidos',
+          'Por favor, revisa los campos en rojo y corrige la información antes de continuar.',
         );
       }
     } else {
       _register();
     }
-  }
-
-  bool _validateCurrentPage() {
-    switch (_currentPage) {
-      case 0: // Información personal
-        return _validatePersonalInfo();
-      case 1: // Información de cuenta
-        return _validateAccountInfo();
-      case 2: // Seguridad
-        return _validateSecurityInfo();
-      default:
-        return false;
-    }
-  }
-
-  bool _validatePersonalInfo() {
-    return _validateEmail(_emailController.text) == null &&
-           _validateFirstName(_firstNameController.text) == null &&
-           _validateLastName(_lastNameController.text) == null &&
-           _validatePhone(_phoneController.text) == null &&
-           _validateDocument(_documentController.text) == null;
-  }
-
-  bool _validateAccountInfo() {
-    switch (widget.accountType) {
-      case AccountType.nequi:
-        return _validateNequiPhone(_nequiPhoneController.text) == null;
-      case AccountType.savingsHand:
-        return _validateSavingsHandAccount(_accountNumberController.text) == null;
-      case AccountType.savingsAccount:
-        return _validateSavingsAccount(_accountNumberController.text) == null;
-    }
-  }
-
-  bool _validateSecurityInfo() {
-    return _validatePin(_pinController.text) == null &&
-           _validateConfirmPin(_confirmPinController.text) == null &&
-           _acceptTerms;
   }
 
   Widget _buildSectionTitle(String title) {
@@ -635,31 +625,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  // Validadores
-  String? _validateEmail(String? value) {
-    final error = ValidationService.getEmailError(value ?? '');
-    return error.isEmpty ? null : error;
-  }
 
-  String? _validateFirstName(String? value) {
-    final error = ValidationService.getNameError(value ?? '');
-    return error.isEmpty ? null : error;
-  }
-
-  String? _validateLastName(String? value) {
-    final error = ValidationService.getNameError(value ?? '');
-    return error.isEmpty ? null : error;
-  }
-
-  String? _validatePhone(String? value) {
-    final error = ValidationService.getPhoneError(value ?? '');
-    return error.isEmpty ? null : error;
-  }
-
-  String? _validateDocument(String? value) {
-    final error = ValidationService.getDocumentError(value ?? '');
-    return error.isEmpty ? null : error;
-  }
 
   String? _validateNequiPhone(String? value) {
     final error = ValidationService.getPhoneError(value ?? '');
@@ -681,12 +647,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return error.isEmpty ? null : error;
   }
 
-  String? _validateConfirmPin(String? value) {
-    if (value != _pinController.text) {
-      return 'Los PINs no coinciden';
-    }
-    return null;
-  }
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) {
@@ -745,6 +705,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     }
   }
+
+    int _getDocumentMaxLength() {
+    switch (_selectedDocumentType) {
+      case 'CC': // Cédula
+      case 'TI': // Tarjeta de Identidad
+        return 10;
+      case 'CE': // Cédula de Extranjería
+      case 'PP': // Pasaporte
+        return 12;
+      default:
+        return 12;
+    }
+  }
+  String _getDocumentHint() {
+  switch (_selectedDocumentType) {
+    case 'CC':
+      return 'Ej: 12345678';
+    case 'TI':
+      return 'Ej: 98765432';
+    case 'CE':
+      return 'Ej: CE123456';
+    case 'PP':
+      return 'Ej: AB123456';
+    default:
+      return 'Número de documento';
+  }
+}
+
+bool _isDocumentNumeric() {
+  switch (_selectedDocumentType) {
+    case 'CC':
+    case 'TI':
+      return true;
+    case 'CE':
+    case 'PP':
+      return false; // Pueden tener letras
+    default:
+      return true;
+  }
+}
 
   String _getFullName() {
     return '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}';

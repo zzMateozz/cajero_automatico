@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:cajero_automatico/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
 import 'screens/auth/account_type_selection_screen.dart';
 import 'utils/constants.dart';
 
@@ -7,13 +8,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Inicializar Firebase
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -137,13 +140,13 @@ class MyApp extends StatelessWidget {
 
         // Checkbox Theme
         checkboxTheme: CheckboxThemeData(
-          fillColor: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.selected)) {
+          fillColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
               return const Color(AppConstants.secondaryColor);
             }
             return Colors.white;
           }),
-          checkColor: MaterialStateProperty.all(Colors.white),
+          checkColor: WidgetStateProperty.all(Colors.white),
           side: const BorderSide(color: Color(AppConstants.primaryColor)),
         ),
 
@@ -152,12 +155,10 @@ class MyApp extends StatelessWidget {
           primary: Color(AppConstants.primaryColor),
           secondary: Color(AppConstants.secondaryColor),
           error: Color(AppConstants.errorColor),
-          background: Color(0xFFF5F5F5),
           surface: Colors.white,
           onPrimary: Colors.white,
           onSecondary: Colors.white,
           onError: Colors.white,
-          onBackground: Color(0xFF212121),
           onSurface: Color(0xFF212121),
         ),
       ),
@@ -174,7 +175,7 @@ class MyApp extends StatelessWidget {
 
 // Splash Screen con carga inicial
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({Key? key}) : super(key: key);
+  const SplashScreen({super.key});
 
   @override
   _SplashScreenState createState() => _SplashScreenState();

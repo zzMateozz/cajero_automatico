@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 enum AccountType {
   nequi,
   savingsHand,
@@ -20,7 +22,7 @@ class AppConstants {
   
   // Límites
   static const double maxDailyWithdrawal = 2000000.0;
-  static const int maxDailyTransactions = 10;
+  static const int maxDailyTransactions = 15;
   static const double minWithdrawal = 10000.0;
   
   // Billetes disponibles (sin 5000)
@@ -64,14 +66,26 @@ extension AccountTypeExtension on AccountType {
     }
   }
 
-  String get icon {
+  // Usa solo IconData, no emojis
+  IconData get iconData {
     switch (this) {
       case AccountType.nequi:
-        return '📱';
+        return Icons.phone_android;
       case AccountType.savingsHand:
-        return '🤝';
+        return Icons.savings;
       case AccountType.savingsAccount:
-        return '🏦';
+        return Icons.account_balance;
+    }
+  }
+
+  String get imagePath {
+    switch (this) {
+      case AccountType.nequi:
+        return 'assets/images/nequi.png';
+      case AccountType.savingsHand:
+        return 'assets/images/savings_hand.png';
+      case AccountType.savingsAccount:
+        return 'assets/images/savings_account.png';
     }
   }
 }

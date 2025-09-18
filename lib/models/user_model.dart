@@ -1,3 +1,4 @@
+import 'package:cajero_automatico/services/validation_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserModel {
@@ -62,29 +63,26 @@ class UserModel {
     this.savingsAccountNumber,
     this.savingsAccountBalance = 0.0,
     this.savingsAccountEnabled = false,
-    this.dailyWithdrawalLimit = 2000000.0,
+    this.dailyWithdrawalLimit = 2700000.0,
     this.todayWithdrawnAmount = 0.0,
-    this.dailyTransactionLimit = 10,
+    this.dailyTransactionLimit = 15,
     this.todayTransactionCount = 0,
   });
 
   // Validaciones específicas para tu proyecto
   bool isValidNequiPhone(String phone) {
-    return phone.length == 10 && RegExp(r'^[0-9]+$').hasMatch(phone);
+    final cleanedPhone = ValidationService.cleanNumber(phone);
+    return ValidationService.isValidNequiPhone(cleanedPhone);
   }
 
   bool isValidSavingsHandAccount(String account) {
-    return account.length == 11 && 
-           RegExp(r'^[01]3[0-9]{9}$').hasMatch(account); // Inicia con 0 o 1, segundo dígito es 3
+    final cleanedAccount = ValidationService.cleanNumber(account);
+    return ValidationService.isValidSavingsHandAccount(cleanedAccount);
   }
 
   bool isValidSavingsAccount(String account) {
-    return account.length == 11 && RegExp(r'^[0-9]{11}$').hasMatch(account);
-  }
-
-  bool canWithdraw(double amount) {
-    return (todayWithdrawnAmount + amount) <= dailyWithdrawalLimit &&
-           todayTransactionCount < dailyTransactionLimit;
+    final cleanedAccount = ValidationService.cleanNumber(account);
+    return ValidationService.isValidSavingsAccount(cleanedAccount);
   }
 
   // Método para validar que el monto sea dispensable (sin billetes de 5000)
@@ -103,6 +101,59 @@ class UserModel {
     }
     
     return remaining == 0;
+  }
+
+  // Método para validar límites de retiro
+  Map<String, dynamic> validateWithdrawal(double amount) {
+    Map<String, dynamic> result = {
+      'isValid': true,
+      'message': '',
+      'exceedsDailyLimit': false,
+      'exceedsTransactionLimit': false,
+      'invalidAmount': false
+    };
+
+    // Validar monto mínimo
+    if (amount < 10000) {
+      result['isValid'] = false;
+      result['message'] = 'El monto mínimo de retiro es \$10.000';
+      result['invalidAmount'] = true;
+      return result;
+    }
+
+    // Validar monto máximo por transacción
+    if (amount > 2700000) {
+      result['isValid'] = false;
+      result['message'] = 'El monto máximo por transacción es \$600.000';
+      result['invalidAmount'] = true;
+      return result;
+    }
+
+    // Validar límite diario
+    if ((todayWithdrawnAmount + amount) > dailyWithdrawalLimit) {
+      result['isValid'] = false;
+      result['message'] = 'Excede su límite diario de retiro de \$${dailyWithdrawalLimit.toStringAsFixed(0)}';
+      result['exceedsDailyLimit'] = true;
+      return result;
+    }
+
+    // Validar límite de transacciones
+    if (todayTransactionCount >= dailyTransactionLimit) {
+      result['isValid'] = false;
+      result['message'] = 'Ha alcanzado el límite de $dailyTransactionLimit transacciones diarias';
+      result['exceedsTransactionLimit'] = true;
+      return result;
+    }
+
+    // Validar si el monto es dispensable
+    if (!isValidWithdrawalAmount(amount)) {
+      result['isValid'] = false;
+      result['message'] = 'El monto no es dispensable. Solo se permiten múltiplos de \$10.000';
+      result['invalidAmount'] = true;
+      return result;
+    }
+
+    return result;
   }
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
@@ -133,7 +184,7 @@ class UserModel {
       savingsAccountEnabled: data['savingsAccountEnabled'] ?? false,
       dailyWithdrawalLimit: (data['dailyWithdrawalLimit'] ?? 2000000.0).toDouble(),
       todayWithdrawnAmount: (data['todayWithdrawnAmount'] ?? 0.0).toDouble(),
-      dailyTransactionLimit: data['dailyTransactionLimit'] ?? 10,
+      dailyTransactionLimit: data['dailyTransactionLimit'] ?? 15,
       todayTransactionCount: data['todayTransactionCount'] ?? 0,
     );
   }
