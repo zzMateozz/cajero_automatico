@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cajero_automatico/screens/withdrawal/auth_code_screen%20.dart';
 import 'package:cajero_automatico/screens/withdrawal/pin_verification_screen%20.dart';
+import 'package:cajero_automatico/services/daily_reset_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -46,6 +47,9 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _currentUser = widget.user;
     _startUserListener();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      DailyResetService.checkAndResetDailyCounters(widget.user.uid);
+    });
   }
 
   @override

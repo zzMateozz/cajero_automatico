@@ -39,6 +39,7 @@ class UserModel {
   final double todayWithdrawnAmount;
   final int dailyTransactionLimit;
   final int todayTransactionCount;
+  final DateTime? lastResetDate;
 
   UserModel({
     required this.uid,
@@ -67,6 +68,7 @@ class UserModel {
     this.todayWithdrawnAmount = 0.0,
     this.dailyTransactionLimit = 15,
     this.todayTransactionCount = 0,
+    this.lastResetDate,
   });
 
   // Validaciones específicas para tu proyecto
@@ -186,6 +188,7 @@ class UserModel {
       todayWithdrawnAmount: (data['todayWithdrawnAmount'] ?? 0.0).toDouble(),
       dailyTransactionLimit: data['dailyTransactionLimit'] ?? 15,
       todayTransactionCount: data['todayTransactionCount'] ?? 0,
+      lastResetDate: (data['lastResetDate'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -216,7 +219,7 @@ class UserModel {
       'dailyWithdrawalLimit': dailyWithdrawalLimit,
       'todayWithdrawnAmount': todayWithdrawnAmount,
       'dailyTransactionLimit': dailyTransactionLimit,
-      'todayTransactionCount': todayTransactionCount,
+      'todayTransactionCount': todayTransactionCount,'lastResetDate': lastResetDate != null ? Timestamp.fromDate(lastResetDate!) : null,
     };
   }
 }

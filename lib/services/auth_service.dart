@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:cajero_automatico/services/daily_reset_service.dart';
 import 'package:cajero_automatico/services/validation_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -340,6 +341,8 @@ class AuthService {
       await _firestore.collection('users').doc(userModel.uid).update({
         'lastLogin': Timestamp.fromDate(DateTime.now()),
       });
+
+      await DailyResetService.checkAndResetDailyCounters(userModel.uid);
 
       return await getUserData(userModel.uid);
       
